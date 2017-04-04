@@ -1,14 +1,10 @@
 package main
 
 import (
-	_ "bytes"
-	_ "encoding/hex"
-	_ "encoding/json"
 	"fmt"
-	"github.com/ideazxy/iso8583"
+	"iso8583"
 	"net"
 	"os"
-	_ "reflect"
 )
 
 const (
