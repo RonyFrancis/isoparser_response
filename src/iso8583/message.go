@@ -95,33 +95,8 @@ func (m *Message) Bytes() (ret []byte, err error) {
 			}
 		}
 	}
-	fmt.Println("value of BITMAP")
-	// sample := string(bitmap)
-	// fmt.Printf("\n")
-	// for i := 0; i < len(sample); i++ {
-	// 	fmt.Printf("%U", sample[i])
-	// }
-	//encodedStr := hex.EncodeToString(bitmap)
-	//fmt.Printf("%s\n", encodedStr)
-	// q := strconv.QuoteToASCII(encodedStr)
-	// fmt.Printf("q is ================ ")
-	// fmt.Printf("%#U", q)
-	fmt.Println(reflect.ValueOf(bitmap))
-	//fmt.Printf("%s\n", encodedStr)
-
 	ret = append(ret, bitmap...)
-	//fmt.Printf("555555555555555555")
-
-	// src := []byte(`30200040020c0001`)
-	// fmt.Println(string(encodedStr))
-	// dst := new(bytes.Buffer)
-	// json.HTMLEscape(dst, src)
-
-	// fmt.Println(dst)
-	//fmt.Printf("66666666666666666666666666666")
 	ret = append(ret, data...)
-	fmt.Println("value of ret")
-	fmt.Println(reflect.ValueOf(string(ret)))
 	return ret, nil
 }
 

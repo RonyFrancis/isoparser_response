@@ -62,20 +62,27 @@ func (p *Parser) Parse(raw []byte) (ret *Message, err error) {
 			ret = nil
 		}
 	}()
-
+	fmt.Printf(string(raw))
 	mti, err := decodeMti(raw, p.MtiEncode)
+	fmt.Printf("\nthe mti in parser is %s\n", mti)
 	if err != nil {
 		return nil, err
 	}
-
+	fmt.Printf("%v", reflect.ValueOf(p.MtiEncode))
 	tp, ok := p.messages[mti]
 	if !ok {
+		fmt.Printf("no template registered for MTI: " + mti + "\n")
 		return nil, errors.New("no template registered for MTI: " + mti)
 	}
+	fmt.Printf("\ntp is %s", tp)
 	tpl := reflect.New(tp)
 	initStruct(tp, tpl)
 	msg := NewMessage(mti, tpl.Interface())
+	fmt.Printf("\nmti is %s\n", msg.Mti)
+	fmt.Printf("%T", reflect.TypeOf(p))
 	msg.MtiEncode = p.MtiEncode
+	fmt.Printf("\ntp is %s", msg.MtiEncode)
+	//fmt.Printf(msg)
 	return msg, msg.Load(raw)
 }
 

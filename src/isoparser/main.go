@@ -3,16 +3,31 @@ package main
 import (
 	"fmt"
 	"iso8583"
+	"math/rand"
 	"net"
 	"os"
+	"reflect"
+	"strconv"
+	"time"
 )
 
+// Constant Values
 const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "33221"
-	CONN_TYPE = "tcp"
+	CONN_HOST    = "localhost"
+	CONN_PORT    = "33221"
+	CONN_TYPE    = "tcp"
+	CONN_TIMEOUT = 10 * time.Second
+	Field4       = "0000000000000000"
+	Field24      = "200"
+	Field32      = "012"
+	Field34      = "00000000000000"
+	Field49      = "INR"
+	Field41      = "MPASSBOOK       "
+	Field42      = "MPASSBOOK      "
+	Field123     = "MPB"
 )
 
+// iso8583 initalisation
 type Data struct {
 	No                    *iso8583.Numeric      `field:"3" length:"6" encode:"ascii"`  // bcd value encoding
 	No2                   *iso8583.Numeric      `field:"4" length:"16" encode:"ascii"` // bcd value encoding
@@ -35,134 +50,96 @@ type Data struct {
 	Reserved3             *iso8583.Lllvar       `field:"127" length:"999" encode:"ascii`
 }
 
+// default params
+func (data *Data) GetDefaultParams() {
+	data.No2 = iso8583.NewNumeric(Field4)
+	data.Functioncode = iso8583.NewNumeric(Field24)
+	data.AcqInsIdeCode = iso8583.NewLlvar([]byte(Field32))
+	data.AccountNumber = iso8583.NewLlvar([]byte(Field34))
+	data.CurrencyCode = iso8583.NewAlphanumeric(Field49)
+	data.DeliveryChannel = iso8583.NewLllvar([]byte(Field123))
+	data.CaTerminalId = iso8583.NewAlphanumeric(Field41)
+	data.CaId = iso8583.NewAlphanumeric(Field42)
+}
+
+// dynamic Values
+func (data *Data) GetDynamicValues() {
+	random := random(100000000000, 999999999999)
+	r := strconv.Itoa(random)
+	data.Rrn = iso8583.NewAlphanumeric(r)
+	data.Ret2 = iso8583.NewAlphanumeric(r)
+	timestamp := time.Now()
+	data.DateTime = iso8583.NewNumeric(timestamp.Format("20060102150405"))
+	data.Capturedate = iso8583.NewNumeric(timestamp.Format("20060102"))
+}
+
+// Get Account Number
+func (data *Data) GetAccountNumber(accountNumber string) {
+	formattedAccountNo := "012        " + accountNumber[:4] + "    " + accountNumber
+	data.AccountId = iso8583.NewLlvar([]byte(formattedAccountNo))
+}
+
+// generate random numbers
+func random(min, max int) int {
+	rand.Seed(time.Now().Unix())
+	return rand.Intn(max-min) + min
+}
+
 func main() {
 	fmt.Println("isoparser the begining")
-	// Listen for incoming connections.
-	// l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
-	// if err != nil {
-	// 	fmt.Println("Error listening:", err.Error())
-	// 	os.Exit(1)
-	// }
-	// // Close the listener when the application closes.
-	// defer l.Close()
-	// fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
-	// for {
-	// 	// Listen for an incoming connection.
-	// 	conn, err := l.Accept()
-	// 	if err != nil {
-	// 		fmt.Println("Error accepting: ", err.Error())
-	// 		os.Exit(1)
-	// 	}
-	// 	// Handle connections in a new goroutine.
-	// 	go handleRequest(conn)
-	// }
+
 	data := &Data{
-		No:              iso8583.NewNumeric("930000"),
-		No2:             iso8583.NewNumeric("0000000000000000"),
-		Ret2:            iso8583.NewAlphanumeric("131968991659"),
-		DateTime:        iso8583.NewNumeric("20170404144019"),
-		Capturedate:     iso8583.NewNumeric("20170404"),
-		Functioncode:    iso8583.NewNumeric("200"),
-		AcqInsIdeCode:   iso8583.NewLlvar([]byte("012")),
-		AccountNumber:   iso8583.NewLlvar([]byte("29040100007529")),
-		Rrn:             iso8583.NewAlphanumeric("131968991659"),
-		CaTerminalId:    iso8583.NewAlphanumeric("MPASSBOOK"),
-		CaId:            iso8583.NewAlphanumeric("MPASSBOOK"),
-		CurrencyCode:    iso8583.NewAlphanumeric("INR"),
-		AccountId:       iso8583.NewLlvar([]byte("012        3611    361103670062573")),
-		DeliveryChannel: iso8583.NewLllvar([]byte("MPB")),
-		Reserved1:       iso8583.NewLllvar([]byte("201702120000000000000000099999999999999999                                10AB")),
+		No:        iso8583.NewNumeric("930000"),
+		Reserved1: iso8583.NewLllvar([]byte("201702120000000000000000099999999999999999                                10AB")),
 	}
+	data.GetDefaultParams()
+	data.GetDynamicValues()
+	data.GetAccountNumber("361103670064591")
 	msg := iso8583.NewMessage("1200", data)
-	fmt.Println("msg values ===================>")
-	fmt.Println(string(msg.Mti))
-	fmt.Println(msg.SecondBitmap)
 	msg.MtiEncode = iso8583.ASCII
-	fmt.Printf("%s\n", msg)
-	fmt.Println("msg values ===================>")
 	b, err := msg.Bytes()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println("stringgggggggggggggggg  bbbbbbbbbbbbbbbbbbb\n")
-	fmt.Printf(string(b))
-	fmt.Printf("\n")
-	// dst := new(bytes.Buffer)
-
-	// src := []byte("30200040020c0001")
-
-	// json.HTMLEscape(dst, src)
-
-	// fmt.Println(dst)
-	// fmt.Printf("heelllllllll")
-	// //sample := "\xB00\x80\x01J\xC1\x80\x00\x00\x00\x00\x00\x00\x00\x00"
-	// fmt.Printf("&&&&&&&&&&&&&&&&&&&&&\n\n")
-
-	// this is working i think
-	// sample := "B030810148C080000000000004000028"
-
-	// bs, err := hex.DecodeString(sample)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	//fmt.Printf("%x\n", bs)
-	//fmt.Printf("%U\n", bs)
-	//fmt.Printf("&&&&&&&&&&&&&&&&&&&&&\n\n")
-	//fmt.Printf("\n%q\n", sample)
-	// for i := 0; i < len(sample); i++ {
-	// 	fmt.Printf("%c", sample[i])
-	// 	//fmt.Printf("%U\n", sample[i])
-	// }
-	// fmt.Printf("%#U", sample)
-	//fmt.Printf("\n%x\n", sample)
-	// a := "b03080014ac1800000000000000000"
-	// fmt.Printf("\n%q\n", a)
-	// code := "1200"
-	// //string := append(code, bs...) // + "93000000000000000000005352304303672017030418101820170304200030121429040100007529535230430367MPASSBOOK       MPASSBOOK      INR34012        3611    361103670062573003MPB078201702120000000000000000099999999999999999                                10AB"
-	// string := "93000000000000000000001703172255912017040320543720170403200030121429040100007529170317225591MPASSBOOK       MPASSBOOK      INR34012        3611    361103670062573003MPB078201702120000000000000000099999999999999999                                10AB"
-	// fmt.Printf("heelllllllll\n")
-	// fmt.Printf("code is %s\n", code)
-	// fmt.Printf("%s\n", bs)
-	// appendString := append([]byte(code), bs...)
-	// appendString = append(appendString, string...)
-	// fmt.Printf("%s\n", string)
-	// fmt.Printf("appended string: %s\n", appendString)
-	// //string2 := append(string, dataparams...)
-	// fmt.Printf("heelllllllll\n")
-	//encodedStr := hex.EncodeToString(b)
-	//fmt.Printf("%s\n", encodedStr)
-
 	// dial a connection
-	ln, err := net.Dial(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	ln, err := net.DialTimeout(CONN_TYPE, CONN_HOST+":"+CONN_PORT, time.Duration(10)*time.Second)
 	if err != nil {
 		fmt.Println("error while creating connection")
 		os.Exit(1)
 	}
-	//for {
 
 	fmt.Println("string is")
-	//fmt.Println(string)
-	//fmt.Println(len(appendString))
 	ln.Write(b)
+	parser := &iso8583.Parser{}
+	parser.MtiEncode = iso8583.ASCII
+	//msg2 := &Data{}
+	err = parser.Register("1200", data)
+
+	if err != nil {
+		fmt.Printf("parser ssssssssssssssssssn\n")
+	}
+	m, err := parser.Parse(b)
+
+	if err != nil {
+		fmt.Printf("parser issue\n")
+	}
+	fmt.Printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")
+	fmt.Println(reflect.ValueOf(m))
+	fmt.Printf("\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n")
 	msgValue := make([]byte, 8192)
-	ln.Read(msgValue)
+	err = ln.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if err != nil {
+		fmt.Printf("/n cannot set time out/n")
+	}
+	_, err = ln.Read(msgValue)
+	if err != nil {
+		fmt.Printf("/n read time out/n")
+	}
 	fmt.Printf(string(msgValue))
 	// Close the listener when the application closes.
 	defer ln.Close()
 
 	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
-	// for {
-	// 	// Listen for an incoming connection.
-	// 	conn2, err := ln.Accept()
-	// 	if err != nil {
-	// 		fmt.Println("Error accepting: ", err.Error())
-	// 		os.Exit(1)
-	// 	}
-	// 	// Handle connections in a new goroutine.
-	// 	go handleRequest(conn2)
-	// }
-	//}
 
 }
 
