@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -85,6 +86,27 @@ func random(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
+// generate new raw and newdata for Numeric and Aplhanumeric
+func LoadValue(raw string, length int) (string, string) {
+	var datastring string
+	datastring = raw[0:length]
+	raw = raw[length:]
+	return datastring, raw
+}
+
+// generate new raw and newdata for Llvar & Lllvar
+func LoadValueLl(raw string, oldlength int) (string, string) {
+	var datastring string
+	length, err := strconv.Atoi(raw[0:oldlength])
+	if err != nil {
+		fmt.Println("error convert convert string to int")
+		fmt.Println(raw[0:oldlength])
+	}
+	fmt.Println("length of llvar is", length)
+	datastring = raw[oldlength:(oldlength + length)]
+	raw = raw[(oldlength + length):]
+	return datastring, raw
+}
 func main() {
 	fmt.Println("isoparser the begining")
 
@@ -140,6 +162,206 @@ func main() {
 	defer ln.Close()
 
 	fmt.Println("Listening on " + CONN_HOST + ":" + CONN_PORT)
+	fmt.Println(string(b))
+	data2 := &Data{
+		No:            iso8583.NewNumeric(""),
+		No2:           iso8583.NewNumeric(""),
+		Ret2:          iso8583.NewAlphanumeric(""),
+		DateTime:      iso8583.NewNumeric(""),
+		Capturedate:   iso8583.NewNumeric(""),
+		Functioncode:  iso8583.NewNumeric(""),
+		AcqInsIdeCode: iso8583.NewLlvar([]byte("")),
+		AccountNumber: iso8583.NewLlvar([]byte("")),
+		Rrn:           iso8583.NewAlphanumeric(""),
+		ActionCode:    iso8583.NewNumeric(""),
+		CaTerminalId:  iso8583.NewAlphanumeric(""),
+		CaId:          iso8583.NewAlphanumeric(""),
+		AdditionalPrivateData: iso8583.NewLllvar([]byte("")),
+		CurrencyCode:          iso8583.NewAlphanumeric(""),
+		AccountId:             iso8583.NewLlvar([]byte("")),
+		DeliveryChannel:       iso8583.NewLllvar([]byte("")),
+		Reserved1:             iso8583.NewLllvar([]byte("")),
+		Reserved2:             iso8583.NewLllvar([]byte("")),
+		Reserved3:             iso8583.NewLllvar([]byte("")),
+	}
+	parser := iso8583.Parser{}
+	parser.MtiEncode = iso8583.ASCII
+	//err = parser.Register("1200", data2)
+	if err != nil {
+		fmt.Println(err)
+	}
+	//input := []byte{48, 49, 48, 48, 242, 60, 36, 129, 40, 224, 152, 0, 0, 0, 0, 0, 0, 0, 1, 0, 49, 54, 52, 50, 55, 54, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 55, 55, 55, 48, 48, 48, 55, 48, 49, 49, 49, 49, 56, 52, 52, 48, 48, 48, 49, 50, 51, 49, 51, 49, 56, 52, 52, 48, 55, 48, 49, 49, 57, 48, 50, 6, 67, 57, 48, 49, 48, 50, 48, 54, 49, 50, 51, 52, 53, 54, 51, 55, 52, 50, 55, 54, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 53, 61, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 48, 49, 48, 48, 48, 48, 48, 51, 50, 49, 49, 50, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 51, 52, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 84, 101, 115, 116, 32, 116, 101, 120, 116, 100, 48, 1, 2, 3, 4, 5, 6, 7, 8, 49, 50, 51, 52, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 49, 55, 65, 110, 111, 116, 104, 101, 114, 32, 116, 101, 115, 116, 32, 116, 101, 120, 116}
+	_, err = parser.Parse(b)
+	fmt.Println(err)
+	if err != nil {
+		fmt.Println("this is a erroer")
+		fmt.Println(err)
+	}
+	fmt.Println(reflect.ValueOf(string(b[4:20])))
+	msg2 := iso8583.NewMessage("1200", data2)
+	msg2.MtiEncode = iso8583.ASCII
+	ret, fields, err := msg2.Convert(b)
+
+	if err != nil {
+		fmt.Println("we have an error\n")
+		fmt.Println(err)
+	}
+	fmt.Printf(string(ret.Mti))
+	//fmt.Println(reflect.TypeOf(t))
+
+	//fmt.Println(reflect.ValueOf(fields))
+	si := make([]int, 0, len(fields))
+	for i := range fields {
+		si = append(si, i)
+	}
+	sort.Ints(si)
+	//fmt.Println(reflect.ValueOf(si))
+	dataString := string(b[20:])
+	i := 0
+	for _, key := range si {
+
+		//fmt.Println("Key:", key, "Value:", reflect.TypeOf(fields[key].Field))
+		var t interface{}
+		t = reflect.TypeOf(fields[key].Field)
+		//fmt.Println(t)
+		// if reflect.TypeOf(fields[key].Field) == Numeric {
+		// 	fmt.Println("ssssssssssssssss")
+		// } else {
+		// 	fmt.Println("nooooooooooooooooooooo")
+		// }
+		val := reflect.Indirect(reflect.ValueOf(data2))
+		val2 := val.Type().Field(i).Name
+
+		var newdata string // data to be stored
+
+		switch t {
+		default:
+			fmt.Println(t)
+			fmt.Printf("unexpected type ") // %T prints whatever type t has
+		case reflect.TypeOf(data2.No):
+			//fmt.Println("fields[key]")
+			//fmt.Println(reflect.ValueOf(fields[key].Index))
+			//data, dataString := dataString[:fields[key].Length], dataString[fields[key].Length:]
+			//data2.val.Type().Field(i).Name = iso8583.NewNumeric(data)
+
+			//fmt.Println("type is sss")
+			//fmt.Println(reflect.TypeOf(val))
+
+			fmt.Println("val2 valius es")
+			fmt.Println(reflect.ValueOf(val2))
+			switch val2 {
+			case "No":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.No = iso8583.NewNumeric(newdata)
+			case "No2":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.No2 = iso8583.NewNumeric(newdata)
+			case "DateTime":
+				//timestamp := time.Now()
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.DateTime = iso8583.NewNumeric(newdata)
+			case "Capturedate":
+				//timestamp := time.Now()
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				fmt.Println("this is the new data for Captures date", newdata)
+				data2.Capturedate = iso8583.NewNumeric(newdata)
+			case "Functioncode":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.Functioncode = iso8583.NewNumeric(newdata)
+				fmt.Println("datastring after function code ", dataString)
+			// case "ActionCode":
+			// 	newdata, dataString = LoadValue(dataString, fields[key].Length)
+			// 	data2.ActionCode = iso8583.NewNumeric(newdata)
+			default:
+				fmt.Println("fucked")
+			}
+			//val.Type().val2 = iso8583.NewNumeric(data)
+			//fmt.Println(data)
+			fmt.Println(dataString)
+		case reflect.TypeOf(data2.Ret2): // alphanumeric
+			switch val2 {
+			case "Ret2":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.Ret2 = iso8583.NewAlphanumeric(newdata)
+			case "Rrn":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.Rrn = iso8583.NewAlphanumeric(newdata)
+			case "CaTerminalId":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.CaTerminalId = iso8583.NewAlphanumeric(newdata)
+			case "CaId":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.CaId = iso8583.NewAlphanumeric(newdata)
+			case "CurrencyCode":
+				newdata, dataString = LoadValue(dataString, fields[key].Length)
+				data2.CurrencyCode = iso8583.NewAlphanumeric(newdata)
+			}
+
+		case reflect.TypeOf(data2.AcqInsIdeCode): //aLlvar
+			//	fmt.Println(reflect.TypeOf(data2.AcqInsIdeCode))
+			switch val2 {
+			case "AcqInsIdeCode":
+				fmt.Println("datastring at AcqInsIdeCode is ", dataString)
+				newdata, dataString = LoadValueLl(dataString, 2)
+				fmt.Println("after datastring at AcqInsIdeCode is ", dataString)
+				data2.AcqInsIdeCode = iso8583.NewLlvar([]byte(newdata))
+			case "AccountNumber":
+				fmt.Println("datastring at AccountNumber is ", dataString)
+				newdata, dataString = LoadValueLl(dataString, 2)
+				fmt.Println("datastring at AccountNumber is ", dataString)
+				data2.AccountNumber = iso8583.NewLlvar([]byte(newdata))
+			case "AccountId":
+				newdata, dataString = LoadValueLl(dataString, 2)
+				data2.GetAccountNumber(newdata)
+			}
+		case reflect.TypeOf(data2.AdditionalPrivateData): //Lllvar
+			//	fmt.Println(reflect.TypeOf(data2.AdditionalPrivateData))
+			switch val2 {
+			case "AdditionalPrivateData":
+				//data2.AdditionalPrivateData = iso8583.NewLllvar([]byte(Field34))
+			case "DeliveryChannel":
+				fmt.Println("newdata is DeliveryChannel  ", dataString)
+				newdata, dataString = LoadValueLl(dataString, 3)
+				fmt.Println("newdata is DeliveryChannel ", dataString)
+				data2.DeliveryChannel = iso8583.NewLllvar([]byte(newdata))
+			case "Reserved1":
+				fmt.Println("newdata is ", dataString)
+				newdata, dataString = LoadValueLl(dataString, 3)
+				fmt.Println("newdata is ", dataString)
+				data2.Reserved1 = iso8583.NewLllvar([]byte(newdata))
+				//data2.Reserved1 = iso8583.NewLllvar([]byte("201702120000000000000000099999999999999999                                10AB"))
+			}
+		}
+		i = i + 1
+	}
+	//fmt.Println(string(b[20:26]))
+	//data2.No = iso8583.NewNumeric(string(b[20:26]))
+
+	//this will print entire values in struct
+	ret, fields, err = msg2.Convert(b)
+
+	if err != nil {
+		fmt.Println("we have an error\n")
+		fmt.Println(err)
+	}
+	for _, key := range si {
+		fmt.Println("Field:", reflect.ValueOf(fields[key].Index), reflect.ValueOf(fields[key].Length), "Value:", reflect.ValueOf(fields[key].Field))
+	}
+
+	// fmt.Println("data2.N0", reflect.ValueOf(data2.No))
+	// fmt.Println("data2.N02", reflect.ValueOf(data2.No2))
+	// fmt.Println(data2.Ret2)
+	// fmt.Println(data2.Rrn)
+	// fmt.Println(data2.DateTime)
+	fmt.Println(data2.Capturedate)
+	// fmt.Println(data2.ActionCode)
+	// fmt.Println(data2.CaTerminalId)
+	// fmt.Println(data2.CaId)
+	// fmt.Println(data2.CurrencyCode)
+	// fmt.Printf("%s\n", data2.AcqInsIdeCode)
+	// fmt.Printf("%s\n", data2.AccountNumber)
+	// fmt.Printf("%s\n", data2.AccountId)
+	fmt.Printf("%s\n", data2.Reserved1)
 
 }
 
