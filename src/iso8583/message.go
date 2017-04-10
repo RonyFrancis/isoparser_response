@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -124,8 +125,8 @@ func parseFields(msg interface{}) map[int]*fieldInfo {
 	fields := make(map[int]*fieldInfo)
 
 	v := reflect.Indirect(reflect.ValueOf(msg))
-	//	fmt.Println("v value")
-	//	fmt.Println("%v", v.Field(0))
+	fmt.Println("v value")
+	fmt.Println(v)
 	if v.Kind() != reflect.Struct {
 		panic("data must be a struct")
 	}
@@ -216,7 +217,15 @@ func (m *Message) Load(raw []byte) (err error) {
 	if m.MtiEncode == BCD {
 		start = 2
 	}
+	fmt.Println(string(raw))
+	s := reflect.ValueOf(m.Data).Elem()
+	typeOfT := s.Type()
 
+	for i := 0; i < s.NumField(); i++ {
+		f := s.Field(i)
+		fmt.Printf("%d: %s %s = %v\n", i,
+			typeOfT.Field(i).Name, f.Type(), f.Interface())
+	}
 	fields := parseFields(m.Data)
 
 	byteNum := 8
@@ -252,4 +261,40 @@ func (m *Message) Load(raw []byte) (err error) {
 		}
 	}
 	return nil
+}
+
+func (m *Message) Convert(raw []byte) (*Message, map[int]*fieldInfo, error) {
+	fmt.Printf("this is a test %s \n", raw)
+	if m.Mti != string(raw[0:4]) {
+		err := errors.New("Critical error: Mti does not matches")
+		return m, nil, err
+	}
+	fields := parseFields(m.Data)
+	fmt.Println(reflect.ValueOf(fields))
+	si := make([]int, 0, len(fields))
+	for i := range fields {
+		si = append(si, i)
+	}
+	sort.Ints(si)
+	fmt.Println(reflect.ValueOf(m.Data))
+	for _, key := range si {
+
+		//fmt.Println("Key:", key, "Value:", reflect.ValueOf(fields[key].Field))
+		var t interface{}
+		t = reflect.TypeOf(fields[key].Field)
+		//fmt.Println(string(reflect.TypeOf(fields[key].Field)))
+		// if reflect.TypeOf(fields[key].Field) == Numeric {
+		// 	fmt.Println("ssssssssssssssss")
+		// } else {
+		// 	fmt.Println("nooooooooooooooooooooo")
+		// }
+		switch t {
+		default:
+			//fmt.Printf("unexpected type %T\n", t) // %T prints whatever type t has
+		case t:
+			//fmt.Printf("it is numeric", t)
+		}
+	}
+
+	return m, fields, nil
 }

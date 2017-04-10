@@ -29,7 +29,8 @@ func (p *Parser) Register(mti string, tpl interface{}) (err error) {
 		p.messages = make(map[string]reflect.Type)
 	}
 	p.messages[mti] = reflect.Indirect(v).Type()
-
+	fmt.Println("this is p.messages[mti]")
+	fmt.Println(reflect.Indirect(v).Type())
 	return nil
 }
 
@@ -62,34 +63,46 @@ func (p *Parser) Parse(raw []byte) (ret *Message, err error) {
 			ret = nil
 		}
 	}()
-	fmt.Printf(string(raw))
+	// fmt.Println("this is raw\n")
+	// fmt.Println(string(raw))
+	// fmt.Println(reflect.ValueOf(p.MtiEncode))
+	// fmt.Println("this is raw\n")
 	mti, err := decodeMti(raw, p.MtiEncode)
-	fmt.Printf("\nthe mti in parser is %s\n", mti)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("%v", reflect.ValueOf(p.MtiEncode))
+
 	tp, ok := p.messages[mti]
 	if !ok {
-		fmt.Printf("no template registered for MTI: " + mti + "\n")
 		return nil, errors.New("no template registered for MTI: " + mti)
 	}
-	fmt.Printf("\ntp is %s", tp)
+	// fmt.Println(reflect.TypeOf(tp))
 	tpl := reflect.New(tp)
+	// fmt.Println(reflect.ValueOf(tp.NumField()))
 	initStruct(tp, tpl)
 	msg := NewMessage(mti, tpl.Interface())
-	fmt.Printf("\nmti is %s\n", msg.Mti)
-	fmt.Printf("%T", reflect.TypeOf(p))
 	msg.MtiEncode = p.MtiEncode
-	fmt.Printf("\ntp is %s", msg.MtiEncode)
-	//fmt.Printf(msg)
-	return msg, msg.Load(raw)
-}
+	// fmt.Printf("%+T\n", msg.Data)
+	// fmt.Println(reflect.ValueOf(msg.Data))
+	// s := reflect.ValueOf(msg.Data).Elem()
+	// typeOfT := s.Type()
 
+	// for i := 0; i < s.NumField(); i++ {
+	// 	f := s.Field(i)
+	// 	fmt.Printf("%d: %s %s = %v\n", i,
+	// 		typeOfT.Field(i).Name, f.Type(), f.Interface())
+	// }
+	// fmt.Println("hello world\n")
+	// fmt.Println(reflect.TypeOf(msg.Load(raw)))
+	// fmt.Println("hello world\n")
+	err = errors.New("Critical error:    zsdkjsdkjfsdk")
+	return msg, err
+}
 func initStruct(tp reflect.Type, val reflect.Value) {
 	for i := 0; i < tp.NumField(); i++ {
 		field := reflect.Indirect(val).Field(i)
 		fieldType := tp.Field(i)
+		//fmt.Println(reflect.ValueOf(fieldType))
 		switch fieldType.Type.Kind() {
 		case reflect.Ptr: // only initialize Ptr fields
 			fieldValue := reflect.New(fieldType.Type.Elem())
