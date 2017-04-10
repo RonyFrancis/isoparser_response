@@ -89,17 +89,17 @@ func LoadValue(raw string, length int) (string, string) {
 	return datastring, raw
 }
 
+// generate new raw and newdata for Llvar & Lllvar
 func LoadValueLl(raw string, oldlength int) (string, string) {
 	var datastring string
-	oldlength = 2
 	length, err := strconv.Atoi(raw[0:oldlength])
 	if err != nil {
 		fmt.Println("error convert convert string to int")
 		fmt.Println(raw[0:oldlength])
 	}
 	fmt.Println("length of llvar is", length)
-	datastring = raw[oldlength:length]
-	raw = raw[length:]
+	datastring = raw[oldlength:(oldlength + length)]
+	raw = raw[(oldlength + length):]
 	return datastring, raw
 }
 
@@ -225,9 +225,10 @@ func main() {
 			case "Functioncode":
 				newdata, dataString = LoadValue(dataString, fields[key].Length)
 				data2.Functioncode = iso8583.NewNumeric(newdata)
-			case "ActionCode":
-				newdata, dataString = LoadValue(dataString, fields[key].Length)
-				data2.ActionCode = iso8583.NewNumeric(newdata)
+				fmt.Println("datastring after function code ", dataString)
+			// case "ActionCode":
+			// 	newdata, dataString = LoadValue(dataString, fields[key].Length)
+			// 	data2.ActionCode = iso8583.NewNumeric(newdata)
 			default:
 				fmt.Println("fucked")
 			}
@@ -259,9 +260,12 @@ func main() {
 			case "AcqInsIdeCode":
 				fmt.Println("datastring at AcqInsIdeCode is ", dataString)
 				newdata, dataString = LoadValueLl(dataString, 2)
+				fmt.Println("after datastring at AcqInsIdeCode is ", dataString)
 				data2.AcqInsIdeCode = iso8583.NewLlvar([]byte(newdata))
 			case "AccountNumber":
+				fmt.Println("datastring at AccountNumber is ", dataString)
 				newdata, dataString = LoadValueLl(dataString, 2)
+				fmt.Println("datastring at AccountNumber is ", dataString)
 				data2.AccountNumber = iso8583.NewLlvar([]byte(newdata))
 			case "AccountId":
 				newdata, dataString = LoadValueLl(dataString, 2)
@@ -272,8 +276,15 @@ func main() {
 			switch val2 {
 			case "AdditionalPrivateData":
 				//data2.AdditionalPrivateData = iso8583.NewLllvar([]byte(Field34))
-			case "Reserved1":
+			case "DeliveryChannel":
+				fmt.Println("newdata is DeliveryChannel  ", dataString)
 				newdata, dataString = LoadValueLl(dataString, 3)
+				fmt.Println("newdata is DeliveryChannel ", dataString)
+				data2.DeliveryChannel = iso8583.NewLllvar([]byte(newdata))
+			case "Reserved1":
+				fmt.Println("newdata is ", dataString)
+				newdata, dataString = LoadValueLl(dataString, 3)
+				fmt.Println("newdata is ", dataString)
 				data2.Reserved1 = iso8583.NewLllvar([]byte(newdata))
 				//data2.Reserved1 = iso8583.NewLllvar([]byte("201702120000000000000000099999999999999999                                10AB"))
 			}
@@ -307,6 +318,6 @@ func main() {
 	// fmt.Printf("%s\n", data2.AcqInsIdeCode)
 	// fmt.Printf("%s\n", data2.AccountNumber)
 	// fmt.Printf("%s\n", data2.AccountId)
-	// fmt.Printf("%s\n", data2.Reserved1)
+	fmt.Printf("%s\n", data2.Reserved1)
 
 }
