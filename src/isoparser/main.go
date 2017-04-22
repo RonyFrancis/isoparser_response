@@ -118,6 +118,9 @@ func (data *Data) UpdateNumericValues(val2, dataString string, Length int) strin
 	case "Functioncode":
 		newdata, dataString = LoadValue(dataString, Length)
 		data.Functioncode = iso8583.NewNumeric(newdata)
+	case "ActionCode":
+		newdata, dataString = LoadValue(dataString, Length)
+		data.ActionCode = iso8583.NewNumeric(newdata)
 	default:
 		fmt.Println("fucked")
 	}
@@ -159,7 +162,9 @@ func (data *Data) UpdateLlValues(val2, dataString string) string {
 		data.AccountNumber = iso8583.NewLlvar([]byte(newdata))
 	case "AccountId":
 		newdata, dataString = LoadValueLl(dataString, 2)
-		data.GetAccountNumber(newdata)
+		data.AccountId = iso8583.NewLlvar([]byte(newdata))
+	default:
+		fmt.Println("new fucked")
 	}
 	return dataString
 }
@@ -169,14 +174,14 @@ func (data *Data) UpdateLllValues(val2, dataString string) string {
 	var newdata string
 	switch val2 {
 	case "AdditionalPrivateData":
-		//data2.AdditionalPrivateData = iso8583.NewLllvar([]byte(Field34))
+		newdata, dataString = LoadValueLl(dataString, 3)
+		data.AdditionalPrivateData = iso8583.NewLllvar([]byte(newdata))
 	case "DeliveryChannel":
 		newdata, dataString = LoadValueLl(dataString, 3)
 		data.DeliveryChannel = iso8583.NewLllvar([]byte(newdata))
 	case "Reserved1":
 		newdata, dataString = LoadValueLl(dataString, 3)
 		data.Reserved1 = iso8583.NewLllvar([]byte(newdata))
-		//data2.Reserved1 = iso8583.NewLllvar([]byte("201702120000000000000000099999999999999999                                10AB"))
 	}
 	return dataString
 }
@@ -208,6 +213,7 @@ func LoadValueLl(raw string, oldlength int) (string, string) {
 	if err != nil {
 		fmt.Println("error convert convert string to int")
 		fmt.Println(raw[0:oldlength])
+		// error handling is needed return values
 	}
 	datastring = raw[oldlength:(oldlength + length)]
 	raw = raw[(oldlength + length):]
@@ -244,7 +250,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("string is")
 	ln.Write(b)
 	msgValue := make([]byte, 8192)
 
@@ -257,7 +262,8 @@ func main() {
 	if err != nil {
 		fmt.Printf("/n read time out/n")
 	}
-
+	fmt.Println(reflect.TypeOf(b))
+	fmt.Println(reflect.TypeOf(msgValue))
 	// Close the listener when the application closes.
 	defer ln.Close()
 
@@ -266,16 +272,14 @@ func main() {
 	// Assigning empty Data struct for parsing response
 	data2 := NewData()
 
-	fmt.Println(reflect.ValueOf(string(b[4:20])))
-	msg2 := iso8583.NewMessage("1200", data2)
+	msg2 := iso8583.NewMessage("1210", data2)
 	msg2.MtiEncode = iso8583.ASCII
-	ret, fields, err := msg2.Convert(b)
+	ret, fields, err := msg2.Convert(msgValue)
 
 	if err != nil {
 		fmt.Println("we have an error\n")
 		fmt.Println(err)
 	}
-	fmt.Printf(string(ret.Mti))
 
 	si := make([]int, 0, len(fields))
 	for i := range fields {
@@ -283,19 +287,13 @@ func main() {
 	}
 	sort.Ints(si)
 
-	dataString := string(b[20:])
+	dataString := string(msgValue[20:])
 	i := 0
 	for _, key := range si {
 
-		//fmt.Println("Key:", key, "Value:", reflect.TypeOf(fields[key].Field))
 		var t interface{}
 		t = reflect.TypeOf(fields[key].Field)
-		//fmt.Println(t)
-		// if reflect.TypeOf(fields[key].Field) == Numeric {
-		// 	fmt.Println("ssssssssssssssss")
-		// } else {
-		// 	fmt.Println("nooooooooooooooooooooo")
-		// }
+
 		val := reflect.Indirect(reflect.ValueOf(data2))
 		val2 := val.Type().Field(i).Name
 
@@ -315,26 +313,15 @@ func main() {
 		i = i + 1
 	}
 
-	//this will print entire values in struct
-	// ret, fields, err = msg2.Convert(b)
-
-	// if err != nil {
-	// 	fmt.Println("we have an error\n")
-	// 	fmt.Println(err)
-	// }
-	// for _, key := range si {
-	// 	fmt.Println("Field:", reflect.ValueOf(fields[key].Index), reflect.ValueOf(fields[key].Length), "Value:", reflect.ValueOf(fields[key].Field))
-	// }
-
 	// Display parsed reponse
-	msg2.PrintValue(b)
+	msg2.PrintValue(msgValue)
 
 	// fmt.Println("data2.N0", reflect.ValueOf(data2.No))
 	// fmt.Println("data2.N02", reflect.ValueOf(data2.No2))
 	// fmt.Println(data2.Ret2)
 	// fmt.Println(data2.Rrn)
 	// fmt.Println(data2.DateTime)
-	fmt.Println(data2.Capturedate)
+	// fmt.Println(data2.Capturedate)
 	// fmt.Println(data2.ActionCode)
 	// fmt.Println(data2.CaTerminalId)
 	// fmt.Println(data2.CaId)
@@ -342,6 +329,6 @@ func main() {
 	// fmt.Printf("%s\n", data2.AcqInsIdeCode)
 	// fmt.Printf("%s\n", data2.AccountNumber)
 	// fmt.Printf("%s\n", data2.AccountId)
-	fmt.Printf("%s\n", data2.Reserved1)
-
+	// fmt.Printf("%s\n", data2.Reserved1)
+	// fmt.Printf("%s\n", data2.AdditionalPrivateData)
 }
