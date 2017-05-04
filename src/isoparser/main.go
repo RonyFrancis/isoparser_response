@@ -186,7 +186,7 @@ func (data *Data) UpdateLllValues(val2, dataString string) string {
 	return dataString
 }
 
-// Get Account Number
+// GetAccountNumber ...
 func (data *Data) GetAccountNumber(accountNumber string) {
 	formattedAccountNo := "012        " + accountNumber[:4] + "    " + accountNumber
 	data.AccountId = iso8583.NewLlvar([]byte(formattedAccountNo))
@@ -219,6 +219,7 @@ func LoadValueLl(raw string, oldlength int) (string, string) {
 	raw = raw[(oldlength + length):]
 	return datastring, raw
 }
+
 func main() {
 	fmt.Println("isoparser the begining")
 
@@ -274,7 +275,7 @@ func main() {
 
 	msg2 := iso8583.NewMessage("1210", data2)
 	msg2.MtiEncode = iso8583.ASCII
-	ret, fields, err := msg2.Convert(msgValue)
+	_, fields, err := msg2.Convert(msgValue)
 
 	if err != nil {
 		fmt.Println("we have an error\n")
@@ -315,7 +316,8 @@ func main() {
 
 	// Display parsed reponse
 	msg2.PrintValue(msgValue)
-
+	// msg2.Transactions(msgValue)
+	data2.Transactions()
 	// fmt.Println("data2.N0", reflect.ValueOf(data2.No))
 	// fmt.Println("data2.N02", reflect.ValueOf(data2.No2))
 	// fmt.Println(data2.Ret2)
@@ -330,5 +332,6 @@ func main() {
 	// fmt.Printf("%s\n", data2.AccountNumber)
 	// fmt.Printf("%s\n", data2.AccountId)
 	// fmt.Printf("%s\n", data2.Reserved1)
-	// fmt.Printf("%s\n", data2.AdditionalPrivateData)
+	a := reflect.ValueOf(data2.AdditionalPrivateData).Elem()
+	fmt.Printf("%v", a)
 }
